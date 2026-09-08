@@ -2,6 +2,7 @@
 
 from .anqing_bus import SOURCE as ANQING
 from .cangzhou_bus import SOURCE as CANGZHOU
+from .dongcheng_bus import SOURCE as DONGCHENG
 from .extra_sources import (
     BAIYIN_SOURCE as BAIYIN,
     BAOJI_SOURCE as BAOJI,
@@ -33,6 +34,7 @@ from .mygolbs_bus import SOURCES as MYGOLBS
 from .taizhou_bus import SOURCE as TAIZHOU
 from .yangzhou_bus import SOURCE as YANGZHOU
 from .zibo_bus import SOURCE as ZIBO
+from .weifang_bus import SOURCE as WEIFANG
 
 
 def configured(source: dict, city: str, platform: str) -> dict:
@@ -49,6 +51,11 @@ def missing(source_id: str, city: str, platform: str) -> dict:
         "allow_empty": True,
         "unavailable": True,
     }
+
+
+# Add source IDs here when you want the directory to show the yellow AI marker.
+# Example: AI_SOURCE_IDS.add("jining-bus")
+AI_SOURCE_IDS: set[str] = set()
 
 
 # The h5.mygolbs entries already follow the first block of the requested table.
@@ -76,19 +83,13 @@ SOURCES += [
     configured(JINAN, "济南", "369出行"),
     configured(LAIWU, "莱芜", "369出行"),
     missing("yinchuan-bus", "银川", "银川行"),
-    missing("qingyuan-bus", "清远", "清远出行易"),
-    missing("yiwu-bus", "义乌", "恒风行"),
-    missing("nantong-bus", "南通", "畅行南通"),
     configured(CANGZHOU, "沧州", "沧州行"),
     configured(QUANCHENG, "江阴", "全澄通"),
-    missing("taizhou-app", "泰州", "泰州掌上公交APP"),
-    missing("wuxi-bus", "无锡", "无锡智慧公交"),
     missing("longquan-bus", "成都", "龙泉公交"),
     configured(JILIN, "吉林", "吉林行"),
     configured(TIANJIN, "天津", "天津公交"),
     configured(BINZHOU, "滨州", "滨州掌上公交"),
     configured(LONGDU, "濮阳", "龙都行"),
-    missing("wuhan-smart-bus", "武汉", "智能公交"),
     configured(HEZE, "菏泽", "菏泽公交"),
     configured(BAIYIN, "白银", "白银公交"),
     configured(LONGKOU, "烟台", "龙口掌上公交"),
@@ -104,12 +105,12 @@ SOURCES += [
     missing("gaoqing-douyin", "淄博", "抖音-高青公交（抖音号20059431886）"),
     missing("huguan-douyin", "壶关县", "抖音-壶关吉通安"),
     configured(LUOYANG, "洛阳", "洛阳行APP"),
-    missing("weifang-bus", "潍坊", "潍坊公交app"),
+    configured(WEIFANG, "潍坊", "潍坊公交app"),
     configured(HUAIBEI, "淮北", "淮北智行app"),
     configured(MAANSHAN, "马鞍山", "马鞍山掌上公交app"),
     missing("yibin-bus", "宜宾", "微信小程序：宜宾掌上公交"),
     missing("panan-bus", "磐安", "微信小程序：磐安畅行"),
-    missing("dongcheng-bus", "重庆", "东城公交app"),
+    configured(DONGCHENG, "重庆", "东城公交app"),
     configured(RAOCHENG, "上饶", "饶城通"),
     missing("hohhot-miniapp", "呼和浩特", "微信小程序：呼和浩特公交"),
     configured(XIANGYANG, "襄阳", "襄阳出行"),

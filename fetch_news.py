@@ -7,10 +7,10 @@ from concurrent.futures import ThreadPoolExecutor
 import html
 import json
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, time as dt_time
 from pathlib import Path
 
-from sources import SOURCES
+from sources import SOURCES, AI_SOURCE_IDS
 
 
 ROOT = Path(__file__).resolve().parent
@@ -27,6 +27,21 @@ def parse_date(value: str) -> date:
     return date.min
 
 
+def sort_key(item: dict) -> tuple:
+    value = str(item.get("date", "")).strip()
+    for pattern in (
+        "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M:%S",
+        "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M",
+        "%Y年%m月%d日 %H:%M:%S", "%Y年%m月%d日 %H:%M",
+    ):
+        try:
+            parsed = datetime.strptime(value, pattern)
+            return (parsed.date(), 1, parsed.time(), str(item.get("title", "")))
+        except ValueError:
+            pass
+    return (parse_date(value), 0, dt_time.min, str(item.get("title", "")))
+
+
 def normalize(source: dict, items: list[dict]) -> list[dict]:
     seen = set()
     result = []
@@ -38,7 +53,7 @@ def normalize(source: dict, items: list[dict]) -> list[dict]:
         result.append({**item, "sourceId": source["id"], "sourceName": source["name"]})
     return sorted(
         result,
-        key=lambda item: (parse_date(str(item.get("date", ""))), str(item.get("title", ""))),
+        key=sort_key,
         reverse=True,
     )
 
@@ -55,8 +70,9 @@ def render_page(
 ) -> str:
     links = ""
     for name, path, status in source_links:
-        suffix = "（暂无录入）" if status == "missing" else "（更新失败）" if status == "error" else ""
-        class_name = f' class="{status}"' if status else ""
+        classes = status.split() if status else []
+        suffix = "（暂无录入）" if "missing" in classes else "（更新失败）" if "error" in classes else ""
+        class_name = f' class="{" ".join(classes)}"' if classes else ""
         links += f'<a href="{html.escape(path, quote=True)}"{class_name}>{html.escape(name + suffix)}</a>'
     rows = []
     for item in items:
@@ -82,7 +98,7 @@ def render_page(
         rows.append(
             "<tr>"
             f"<td>{html.escape(str(item.get('date', '')))}</td>"
-            f"<td>{html.escape(str(item.get('sourceName', '')))}</td>"
+            f'<td><span class="platform-badge">{html.escape(str(item.get("sourceName", "")))}</span></td>'
             f"<td>{title_cell}</td>"
             f"<td>{html.escape(str(item.get('type', '')))}</td>"
             f"<td>{image_link}</td>"
@@ -111,20 +127,21 @@ def render_page(
 :root{{--line:#d8dee4;--muted:#59636e;--head:#f6f8fa;--link:#0969da}}
 *{{box-sizing:border-box}}body{{font-family:"Microsoft YaHei",Arial,sans-serif;margin:0;color:#1f2328}}
 header{{padding:20px 24px 14px;border-bottom:1px solid var(--line);background:#fff}}
-h1{{font-size:22px;margin:0 0 8px}}p{{color:var(--muted);margin:0}}nav{{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 14px;max-width:100%}}
-nav a{{overflow-wrap:anywhere;word-break:break-word}}
+h1{{font-size:22px;margin:0 0 8px}}p{{color:var(--muted);margin:0}}nav{{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 14px;max-width:100%}}#platform-search{{width:min(420px,100%);padding:9px 11px;border:1px solid var(--line);border-radius:6px;font-size:15px}}.directory-tools{{margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}}.ai-toggle{{display:flex;align-items:center;gap:6px;color:var(--muted);white-space:nowrap}}
+nav a{{overflow-wrap:anywhere;word-break:break-word;padding:5px 8px;background:#f3f5f7;border:1px solid var(--line);border-radius:4px}}
 a{{color:var(--link);text-decoration:none}}main{{padding:16px 24px 32px}}table{{border-collapse:collapse;width:100%}}
 th,td{{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}}th{{background:var(--head)}}
 td:first-child{{white-space:nowrap}}tr:nth-child(even){{background:#fbfcfd}}
+.platform-badge{{display:inline-block;padding:3px 7px;background:#eef4ff;border:1px solid #c8d8f5;border-radius:4px;white-space:nowrap}}
 details{{margin-top:7px}}summary{{color:var(--link);cursor:pointer}}.description{{white-space:pre-wrap;margin-top:7px;line-height:1.7;color:#3d444d}}
 .pagination{{display:flex;align-items:center;justify-content:center;gap:18px;margin:16px 0}}.pagination a{{font-weight:600}}
-nav .missing{{color:#6e7781}}nav .error{{color:#cf222e;font-weight:700}}.empty{{padding:28px;text-align:center;color:var(--muted)}}
+nav .missing{{color:#6e7781;background:#f6f8fa}}nav .recent{{background:#dcffe4;border-color:#56d364;color:#116329}}nav .ai,nav .ai-manual{{background:#fff8c5;border-color:#d4a72c;color:#6e4c00}}nav .error,nav .error.recent,nav .error.ai,nav .error.ai-manual{{color:#cf222e;background:#ffebe9;border-color:#ff8182;font-weight:700}}.empty{{padding:28px;text-align:center;color:var(--muted)}}
 .error-banner{{margin-top:12px;padding:10px 12px;border:1px solid #ff8182;background:#ffebe9;color:#82071e}}
 @media(max-width:700px){{header,main{{padding-left:12px;padding-right:12px}}th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5){{display:none}}}}
 </style></head><body><header><h1>{html.escape(title)}</h1>
-<p>共 {total_items} 条，每页最多 {PAGE_SIZE} 条，按日期从新到旧排列。更新时间：{fetched_at}</p>{notice_html}<nav>{links}</nav></header>
+<p>共 {total_items} 条，每页最多 {PAGE_SIZE} 条，按日期从新到旧排列。更新时间：{fetched_at}</p>{notice_html}<div class="directory-tools"><input id="platform-search" type="search" placeholder="搜索平台" oninput="filterPlatforms(this.value)"><label class="ai-toggle"><input id="ai-edit" type="checkbox">设置 AI 标记</label></div><nav id="platform-nav">{links}</nav></header>
 <main><table><thead><tr><th>日期</th><th>公交</th><th>公告标题</th><th>类型</th><th>图片</th></tr></thead>
-<tbody>{''.join(rows)}</tbody></table>{pagination}</main></body></html>"""
+<tbody>{''.join(rows)}</tbody></table>{pagination}</main><script>const AI_KEY='bus-ai-platforms';function savedAI(){{try{{return new Set(JSON.parse(localStorage.getItem(AI_KEY)||'[]'))}}catch(e){{return new Set()}}}}function applyAI(){{const ids=savedAI();document.querySelectorAll('#platform-nav a').forEach(a=>a.classList.toggle('ai-manual',ids.has(a.getAttribute('href'))))}}function filterPlatforms(q){{q=q.toLowerCase();document.querySelectorAll('#platform-nav a').forEach(function(a){{a.style.display=a.textContent.toLowerCase().includes(q)?'':'none'}})}}document.getElementById('platform-nav').addEventListener('click',function(e){{const a=e.target.closest('a');if(!a||!document.getElementById('ai-edit').checked||a.getAttribute('href')==='index.html')return;e.preventDefault();const ids=savedAI(),id=a.getAttribute('href');ids.has(id)?ids.delete(id):ids.add(id);localStorage.setItem(AI_KEY,JSON.stringify([...ids]));applyAI()}});applyAI()</script></body></html>"""
 
 
 def write_paginated_pages(
@@ -183,11 +200,20 @@ def main() -> int:
         source_results.append((source, items))
         print(f"{source['name']}：{len(items)} 条")
 
-    source_links = [("全部公交", "index.html", "")] + [
-        (source["name"], f"{source['id']}.html",
-         "missing" if source.get("unavailable") else "error" if source.get("fetch_error") else "")
-        for source, _ in source_results
-    ]
+    today = datetime.now().date()
+    recent_cutoff = today.fromordinal(today.toordinal() - 1)
+    source_links = [("全部公交", "index.html", "")] + []
+    for source, items in source_results:
+        classes = []
+        if source.get("unavailable"):
+            classes.append("missing")
+        elif source.get("fetch_error"):
+            classes.append("error")
+        if any(recent_cutoff <= parse_date(str(item.get("date", ""))) <= today for item in items):
+            classes.append("recent")
+        if source.get("id") in AI_SOURCE_IDS:
+            classes.append("ai")
+        source_links.append((source["name"], f"{source['id']}.html", " ".join(classes)))
     for source, items in source_results:
         filename = f"{source['id']}.html"
         title = f"{source['name']}公告"
@@ -198,10 +224,7 @@ def main() -> int:
             json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
-    all_items.sort(
-        key=lambda item: (parse_date(str(item.get("date", ""))), str(item.get("title", ""))),
-        reverse=True,
-    )
+    all_items.sort(key=sort_key, reverse=True)
     write_paginated_pages("index.html", "公交公告汇总", all_items, source_links)
     (OUTPUT_DIR / "all.json").write_text(
         json.dumps(all_items, ensure_ascii=False, indent=2), encoding="utf-8"
