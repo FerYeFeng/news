@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>新闻公告</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1, maximum-scale=1">
+    <meta name="format-detection" content="telephone=yes" />
+    <link rel="stylesheet" href="/tzhcx/css/mobile.css">
+    <script src="/tzhcx/js/jquery-1.11.2.min.js"></script> 
+    <script src="/tzhcx/js/common.js"></script>
+    <link rel="stylesheet" href="/tzhcx/css/dropload.css">
+    <script src="/tzhcx/js/dropload.min.js"></script>
+    <script>
+        var currentPage = 1;
+        var limit = 20;
+        $(function() {
+        	droploadMethod();
+            $('.flexBody').dropload({
+                scrollArea : window,
+                domUp : {
+                    domClass   : 'dropload-up',
+                    domRefresh : '<div class="dropload-refresh">下拉刷新</div>',
+                    domUpdate  : '<div class="dropload-update">释放更新</div>',
+                    domLoad    : '<div class="dropload-load">加载中</div>',
+                },
+                loadUpFn : function(me){
+                    window.location.reload();
+                },
+                threshold : 80
+            });
+        })
+        function droploadMethod(){
+        	$('.flexBody').dropload({
+        		domDown : {
+                    domClass   : 'dropload-down',
+                    domRefresh : '<p class="dropload-refresh">上拉加载更多</p>',
+                    domLoad    : '<p class="dropload-load">加载中...</p>',
+                    domNoData  : '<p class="dropload-noData">到底啦</p>'
+                },
+                loadDownFn:function(me){
+                    var realcount = $("ul li").length;
+                    var total = $("#total").val();
+                    if(realcount >= total){
+                        me.lock();// 锁定
+                        me.noData();// 显示无数据
+                        me.resetload();// 每次数据加载完，必须重置
+                        return;
+                    }
+                    var page = currentPage +1;
+                    var noticeType = $("#noticeType").val();
+                    $.ajax({
+                        url: "toListPage",
+                        type: 'post',
+                        async:false,
+                        data:{
+                        	type: noticeType,
+                            page: page,
+                            limit: limit
+                        },
+                        success: function (data) {
+                            var  list= $(data).find('.dataList');
+                            if(list.length == 0){
+                                return;
+                            }else {
+                                $('.noticelist ul').append(list);
+                                currentPage++;
+                            }
+                            me.resetload();
+                        },error:function(){
+                        	me.lock();
+                        	me.noData();
+                        	me.resetload();
+                        }
+                    })
+                },
+                threshold : 80
+        	})
+       	}
+    </script>
+</head>
+
+<body class="flexLayout whiteBg">
+    <header>
+        <a href="javascript:void(0)" onclick="returnToPrevious();" class="iconfont">&#xe62b;</a>
+        <h1>新闻公告</h1>
+        <a class="iconfont"></a>
+    </header>
+    <div class="flexBody" >
+    	<input type="hidden" id="noticeType" value="1">
+        <input type="hidden" id="total" value="459">
+        <div class="noticelist">
+            <ul>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=c38bc231b7c34a9a81d8c4073288f435">注意啦！泰州这7条公交线路拟调整，您的意见很重要！</a>
+                    </span>
+                    <span>2026-09-04</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=1de2cde6eba842a48b58a79a909471ee">关于市区部分线路恢复原线运行的通告</a>
+                    </span>
+                    <span>2026-09-03</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=a294de8e852f4cbfa6954827a1c03ae0">关于姜堰公交829路临时绕行通告</a>
+                    </span>
+                    <span>2026-08-31</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=c3575906968744348377c2f9762b6d10">关于姜堰公交802路、802区临时绕行通告</a>
+                    </span>
+                    <span>2026-08-28</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=0a591cba88954b4ab8589ff0f96b2697">关于准时公交38路优化调整的通告</a>
+                    </span>
+                    <span>2026-08-24</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=1f65e889c3e44bc8b37e1ed33ea2d304">苏超福利来了！</a>
+                    </span>
+                    <span>2026-08-21</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=2b2dbac870724c9db080e477873d8558">关于部分公交线路临时停运的通告</a>
+                    </span>
+                    <span>2026-08-10</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=0fb8bea566434f1aa2e78fca80fe0364">战鼓再响，出行无忧！ 泰州球迷请查收这份观赛指南</a>
+                    </span>
+                    <span>2026-08-08</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=a1708cb8e5074b379adf896a84974527">关于公交33路临时绕行的通告</a>
+                    </span>
+                    <span>2026-08-06</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=5612058892044357bc68982dd1d4afad">关于2026年江苏省城市足球联赛期间公交线路临时绕行的通告</a>
+                    </span>
+                    <span>2026-08-06</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=464f9fad4d5442bc95594c5fe68d87be">关于826路公交线路优化调整的公告</a>
+                    </span>
+                    <span>2026-08-05</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=9590ac890ad64b3e8c577a68e66c934c">关于826路、816路、816夜、姜游1路、毗邻1、毗邻1区、公交线路优化调整的公告</a>
+                    </span>
+                    <span>2026-08-01</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=9157b8336f3f45fb9eaefeed973822d8">关于姜堰公交801路、827路、817路、817区临时绕行的通告</a>
+                    </span>
+                    <span>2026-07-31</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=5c1564c3b56e416aae81510be77bac3f">关于公交36路优化调整的通告</a>
+                    </span>
+                    <span>2026-07-22</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=776c9876da384d36b5bbd25b2f605833">关于新辟泰州至姜堰“臻享巴士”公交专线的通告</a>
+                    </span>
+                    <span>2026-07-22</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=8c62fa0e8644419ead9094e997b5cd55">关于停售“随心行”公交电子月票的通告</a>
+                    </span>
+                    <span>2026-07-22</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=2c14a5cf37d94cfab8e9f389e9d38571">关于姜堰公交809路、822路临时绕行的通告</a>
+                    </span>
+                    <span>2026-07-17</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=3272147b232d403b8c563b28cdeb5747">关于姜堰公交线路逐步恢复运营通告</a>
+                    </span>
+                    <span>2026-07-13</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=8d81b99fb2214fdaa60502c40d52588a">关于姜堰全区公交线路临时停运的通告</a>
+                    </span>
+                    <span>2026-07-11</span>
+                </li>
+                <li class="dataList">
+                	<span>
+                    	<a href="/tzhcx/notice/toGetOneById?id=7c33e505662042ff8ace34ca82dce462">关于夜班公交线路末班班次停运的通告</a>
+                    </span>
+                    <span>2026-07-11</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+$(function() {
+	//无数据时更换到底提示
+    var total = $("#total").val();
+	if(total == 0){
+		$(".dropload-noData").html("暂无数据！");
+	}
+})
+</script>
+</html>
