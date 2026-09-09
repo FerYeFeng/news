@@ -125,10 +125,10 @@ def render_page(
 <title>{html.escape(title)}</title>
 <style>
 :root{{--line:#d8dee4;--muted:#59636e;--head:#f6f8fa;--link:#0969da}}
-*{{box-sizing:border-box}}body{{font-family:"Microsoft YaHei",Arial,sans-serif;margin:0;color:#1f2328}}
+*{{box-sizing:border-box}}html{{overflow-y:scroll}}body{{font-family:"Microsoft YaHei",Arial,sans-serif;margin:0;color:#1f2328}}
 header{{padding:20px 24px 14px;border-bottom:1px solid var(--line);background:#fff}}
 h1{{font-size:22px;margin:0 0 8px}}p{{color:var(--muted);margin:0}}nav{{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 14px;max-width:100%}}#platform-search{{width:min(420px,100%);padding:9px 11px;border:1px solid var(--line);border-radius:6px;font-size:15px}}.directory-tools{{margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}}.ai-toggle{{display:flex;align-items:center;gap:6px;color:var(--muted);white-space:nowrap}}
-nav a{{overflow-wrap:anywhere;word-break:break-word;padding:5px 8px;background:#f3f5f7;border:1px solid var(--line);border-radius:4px}}
+nav a{{display:inline-flex;align-items:center;white-space:nowrap;flex:0 0 auto;padding:5px 8px;background:#f3f5f7;border:1px solid var(--line);border-radius:4px}}
 a{{color:var(--link);text-decoration:none}}main{{padding:16px 24px 32px}}table{{border-collapse:collapse;width:100%}}
 th,td{{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}}th{{background:var(--head)}}
 td:first-child{{white-space:nowrap}}tr:nth-child(even){{background:#fbfcfd}}
@@ -141,7 +141,7 @@ nav .missing{{color:#6e7781;background:#f6f8fa}}nav .recent{{background:#dcffe4;
 </style></head><body><header><h1>{html.escape(title)}</h1>
 <p>共 {total_items} 条，每页最多 {PAGE_SIZE} 条，按日期从新到旧排列。更新时间：{fetched_at}</p>{notice_html}<div class="directory-tools"><input id="platform-search" type="search" placeholder="搜索平台" oninput="filterPlatforms(this.value)"><label class="ai-toggle"><input id="ai-edit" type="checkbox">设置 AI 标记</label></div><nav id="platform-nav">{links}</nav></header>
 <main><table><thead><tr><th>日期</th><th>公交</th><th>公告标题</th><th>类型</th><th>图片</th></tr></thead>
-<tbody>{''.join(rows)}</tbody></table>{pagination}</main><script>const AI_KEY='bus-ai-platforms';function savedAI(){{try{{return new Set(JSON.parse(localStorage.getItem(AI_KEY)||'[]'))}}catch(e){{return new Set()}}}}function applyAI(){{const ids=savedAI();document.querySelectorAll('#platform-nav a').forEach(a=>a.classList.toggle('ai-manual',ids.has(a.getAttribute('href'))))}}function filterPlatforms(q){{q=q.toLowerCase();document.querySelectorAll('#platform-nav a').forEach(function(a){{a.style.display=a.textContent.toLowerCase().includes(q)?'':'none'}})}}document.getElementById('platform-nav').addEventListener('click',function(e){{const a=e.target.closest('a');if(!a||!document.getElementById('ai-edit').checked||a.getAttribute('href')==='index.html')return;e.preventDefault();const ids=savedAI(),id=a.getAttribute('href');ids.has(id)?ids.delete(id):ids.add(id);localStorage.setItem(AI_KEY,JSON.stringify([...ids]));applyAI()}});applyAI()</script></body></html>"""
+<tbody>{''.join(rows)}</tbody></table>{pagination}</main><script>const AI_KEY='bus-ai-platforms',SCROLL_KEY='bus-platform-scroll';function savedAI(){{try{{return new Set(JSON.parse(localStorage.getItem(AI_KEY)||'[]'))}}catch(e){{return new Set()}}}}function applyAI(){{const ids=savedAI();document.querySelectorAll('#platform-nav a').forEach(a=>a.classList.toggle('ai-manual',ids.has(a.getAttribute('href'))))}}function filterPlatforms(q){{q=q.toLowerCase();document.querySelectorAll('#platform-nav a').forEach(function(a){{a.style.display=a.textContent.toLowerCase().includes(q)?'':'none'}})}}const nav=document.getElementById('platform-nav');nav.addEventListener('click',function(e){{const a=e.target.closest('a');if(!a)return;if(document.getElementById('ai-edit').checked&&a.getAttribute('href')!=='index.html'){{e.preventDefault();const ids=savedAI(),id=a.getAttribute('href');ids.has(id)?ids.delete(id):ids.add(id);localStorage.setItem(AI_KEY,JSON.stringify([...ids]));applyAI();return}}sessionStorage.setItem(SCROLL_KEY,String(window.scrollY))}});applyAI();const oldScroll=sessionStorage.getItem(SCROLL_KEY);if(oldScroll!==null){{sessionStorage.removeItem(SCROLL_KEY);requestAnimationFrame(()=>window.scrollTo(0,Number(oldScroll)))}}</script></body></html>"""
 
 
 def write_paginated_pages(
@@ -181,6 +181,14 @@ def main() -> int:
                 cached_items = []
         try:
             fetched_items = source["fetch"]()
+            if not isinstance(fetched_items, list):
+                raise RuntimeError("接口未返回公告列表")
+            fetched_items = [
+                item for item in fetched_items
+                if isinstance(item, dict) and str(item.get("title", "")).strip()
+            ]
+            if not fetched_items:
+                raise RuntimeError("接口未返回公告内容")
         except Exception as exc:
             fetched_items = []
             cache_note = "，使用历史缓存" if cached_items else "，暂无历史缓存"

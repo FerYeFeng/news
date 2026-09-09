@@ -68,7 +68,7 @@ def fetch_city(city_name: str) -> list[dict]:
     with urlopen(request, timeout=30) as response:
         result = json.loads(response.read().decode("utf-8"))
     if result.get("status") != 1:
-        return []
+        raise RuntimeError(result.get("msg") or result.get("message") or "掌上公交接口返回失败")
 
     announcements = []
     for item in result.get("data") or []:

@@ -73,6 +73,8 @@ def fetch_weihai() -> list[dict]:
            "&timestamp=1788847129140&city=371000&token=&appSource=com.ibuscloud.weihaibus"
            "&platform=Android&signature=bg4Cm%2FT3H4HOcA%2FRICsRFhVsSm6hcpzbdMlsOLpGP0o%3D")
     result = load_json(Request(url))
+    if str(result.get("result")) != "0" or not isinstance(result.get("items"), list):
+        raise RuntimeError(result.get("message") or "威海公交接口返回失败")
     return [
         {"id": str(item["id"]), "date": datetime.fromtimestamp(int(item["createTime"]) / 1000).strftime("%Y-%m-%d %H:%M:%S"),
          "title": item.get("title", ""), "type": "最新10条（签名分页）", "image": "",
@@ -272,6 +274,8 @@ def fetch_raocheng() -> list[dict]:
            "&timestamp=1788848368623&city=361100&token=&appSource=com.ibuscloud.shangraobus"
            "&platform=Android&signature=ZgTLCB8sKZ7tnhNXMIeJJg%2B8E3CO49J2P%2BAwpUdakvo%3D")
     result = load_json(Request(url))
+    if str(result.get("result")) != "0" or not isinstance(result.get("items"), list):
+        raise RuntimeError(result.get("message") or "饶城通接口返回失败")
     return [
         {"id": str(item.get("id", "")),
          "date": datetime.fromtimestamp(int(item.get("createTime", 0)) / 1000).strftime("%Y-%m-%d %H:%M:%S"),
