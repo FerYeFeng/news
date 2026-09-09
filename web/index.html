@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>公交公告监控</title>
+  <link rel="stylesheet" href="/styles.css?v=20260910-1">
+</head>
+<body>
+  <main>
+    <p id="updated-at" class="summary">正在读取数据</p>
+
+    <section class="workspace">
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="内容筛选">
+          <button class="tab active" data-view="notices" data-filter="all" type="button">全部 <span id="count-all">0</span></button>
+          <button class="tab" data-view="notices" data-filter="today" type="button">今天 <span id="count-today">0</span></button>
+          <button class="tab" data-view="notices" data-filter="yesterday" type="button">昨天 <span id="count-yesterday">0</span></button>
+          <button class="tab" data-view="sources" type="button">平台 <span id="count-sources">0</span></button>
+        </div>
+        <div class="toolbar-right">
+          <label id="ai-mode-wrap" class="ai-mode" hidden><input id="ai-mode" type="checkbox"><span>设置 AI 标记</span></label>
+          <select id="sort" aria-label="公告排序"><option value="desc">时间：最新优先</option><option value="asc">时间：最早优先</option></select>
+          <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索平台或公告" autocomplete="off"></label>
+        </div>
+      </div>
+
+      <div id="active-filter" class="active-filter" hidden><span>当前平台：<strong id="active-source-name"></strong></span><button id="clear-source" type="button">清除筛选</button></div>
+      <div id="notice-list" class="notice-list" aria-live="polite"></div>
+      <div id="source-list" class="source-list" aria-live="polite" hidden></div>
+      <div id="empty" class="empty" hidden><strong>没有符合条件的内容</strong><span>更换筛选条件或搜索词</span></div>
+      <div id="pagination" class="pagination"><button id="previous" type="button">上一页</button><span id="page-label">第 1 / 1 页</span><button id="next" type="button">下一页</button></div>
+    </section>
+  </main>
+  <script src="/app.js?v=20260910-1"></script>
+</body>
+</html>

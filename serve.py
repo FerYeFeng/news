@@ -20,6 +20,15 @@ PORT = 9092
 INTERVAL_SECONDS = 180
 
 
+class NewsHandler(SimpleHTTPRequestHandler):
+    extensions_map = {
+        **SimpleHTTPRequestHandler.extensions_map,
+        ".js": "application/javascript; charset=utf-8",
+        ".css": "text/css; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+    }
+
+
 def update_loop() -> None:
     while True:
         started = time.monotonic()
@@ -39,7 +48,7 @@ def update_loop() -> None:
 def main() -> None:
     HTML_DIR.mkdir(parents=True, exist_ok=True)
     os.chdir(HTML_DIR)
-    server = ThreadingHTTPServer((HOST, PORT), SimpleHTTPRequestHandler)
+    server = ThreadingHTTPServer((HOST, PORT), NewsHandler)
     threading.Thread(target=update_loop, name="news-updater", daemon=True).start()
     url = f"http://127.0.0.1:{PORT}/"
     print(f"监听地址：http://{HOST}:{PORT}/", flush=True)
