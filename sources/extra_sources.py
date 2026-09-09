@@ -46,6 +46,21 @@ def post_form(url: str, payload: dict, headers: dict | None = None) -> dict:
     return load_json(Request(url, data=body, method="POST", headers=request_headers))
 
 
+def panda_signed_payload(payload: dict) -> dict:
+    """Build the Panda Bus request signature with a fresh timestamp."""
+    payload = {**payload, "timestamp": int(datetime.now().timestamp() * 1000)}
+    parts = []
+    for key, value in sorted(payload.items()):
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        parts.append(f"{key}={value}")
+    canonical = "&".join(parts)
+    payload["sign"] = hashlib.md5(
+        f"{canonical}&key=dalianyitongchuangxin".encode("utf-8")
+    ).hexdigest().upper()
+    return payload
+
+
 def fetch_heze() -> list[dict]:
     result = load_json(Request("http://weixin.hezebus.com:9008/hzapp/push/notificationNotice/notificationGeneral"))
     return [
@@ -165,11 +180,11 @@ def fetch_e_laiwu() -> list[dict]:
 
 
 def fetch_linyi() -> list[dict]:
-    payload = {"appId": "pduksjr0qngp", "appVersion": "1.4.2", "cityCode": "linyi",
+    payload = panda_signed_payload({"appId": "pduksjr0qngp", "appVersion": "1.4.2", "cityCode": "linyi",
                "datas": {"page": 1, "row": 10, "tagId": 4}, "deviceBrand": "Xiaomi",
                "deviceId": "b8f965b5-7e71-43a7-9636-5841659472ab", "deviceModel": "24129PN74C",
                "from": 1, "lat": 0.0, "lng": 0.0, "reqType": "CommonInformationGain",
-               "sign": "8C87E3D2436F864300322666E1FC39FC", "timestamp": 1788847830383}
+               })
     result = post_json("https://app.lygjgroup.com:8880/", payload, {"User-Agent": "okhttp/3.14.9"})
     return panda_information(result, "最新10条（签名分页）")
 
@@ -319,18 +334,17 @@ def fetch_tianjin() -> list[dict]:
 
 
 def fetch_jilin() -> list[dict]:
-    payload = {"appId": "pdmnwrqnrbyi", "appVersion": "1.2.6", "cityCode": "jilin",
+    payload = panda_signed_payload({"appId": "pdmnwrqnrbyi", "appVersion": "1.2.6", "cityCode": "jilin",
                "datas": {"page": 1, "row": 10}, "deviceId": "fbf682e2-3fc4-432a-a127-389a51dcab77",
                "from": 1, "lat": 0.0, "lng": 0.0, "reqType": "CommonInformationGain",
-               "sign": "D6F97B8412D32AC4F800192B350099F5", "timestamp": 1788846530897}
+               })
     result = post_json("https://shuttle.pandabus.cn:8802/", payload)
     return panda_information(result, "最新10条（签名分页）")
 
 
 def fetch_quancheng() -> list[dict]:
-    payload = {"appVersion": "1.0.0", "datas": '{"page":1,"row":10}', "deviceId": "123123123123123",
-               "reqType": "CommonTravelInfo", "timestamp": 1788846263000,
-               "sign": "71c27b88e87c6d0e0e3e251453e72a05"}
+    payload = panda_signed_payload({"appVersion": "1.0.0", "datas": '{"page":1,"row":10}', "deviceId": "123123123123123",
+               "reqType": "CommonTravelInfo"})
     result = post_json("https://production.fengqiangwangluo.com:8880/", payload,
                        {"Origin": "https://h5.pandabus.cn", "Referer": "https://h5.pandabus.cn/"})
     items = result.get("results", {}).get("infoList", [])
