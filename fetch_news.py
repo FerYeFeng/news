@@ -80,6 +80,8 @@ def render_page(
         class_name = f' class="{" ".join(classes)}"' if classes else ""
         links += f'<a href="{html.escape(path, quote=True)}"{class_name}>{html.escape(name + suffix)}</a>'
     rows = []
+    today = datetime.now().date()
+    yesterday = today.fromordinal(today.toordinal() - 1)
     for item in items:
         image = str(item.get("image", ""))
         url = str(item.get("url", ""))
@@ -100,8 +102,11 @@ def render_page(
             if image
             else ""
         )
+        item_date = parse_date(str(item.get("date", "")))
+        row_class = "today" if item_date == today else "yesterday" if item_date == yesterday else ""
+        class_attribute = f' class="{row_class}"' if row_class else ""
         rows.append(
-            "<tr>"
+            f"<tr{class_attribute}>"
             f"<td>{html.escape(str(item.get('date', '')))}</td>"
             f'<td><span class="platform-badge">{html.escape(str(item.get("sourceName", "")))}</span></td>'
             f"<td>{title_cell}</td>"
@@ -137,11 +142,11 @@ h1{{font-size:22px;margin:0 0 8px}}p{{color:var(--muted);margin:0}}nav{{margin-t
 nav a{{display:inline-flex;align-items:center;white-space:nowrap;flex:0 0 auto;padding:5px 8px;background:#f3f5f7;border:1px solid var(--line);border-radius:4px}}
 a{{color:var(--link);text-decoration:none}}main{{padding:16px 24px 32px}}table{{border-collapse:collapse;width:100%}}
 th,td{{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}}th{{background:var(--head)}}
-td:first-child{{white-space:nowrap}}tr:nth-child(even){{background:#fbfcfd}}
+td:first-child{{white-space:nowrap}}tr:nth-child(even){{background:#fbfcfd}}tbody tr.yesterday{{background:#edfff1}}tbody tr.today{{background:#c7f0d0}}
 .platform-badge{{display:inline-block;padding:3px 7px;background:#eef4ff;border:1px solid #c8d8f5;border-radius:4px;white-space:nowrap}}
 details{{margin-top:7px}}summary{{color:var(--link);cursor:pointer}}.description{{white-space:pre-wrap;margin-top:7px;line-height:1.7;color:#3d444d}}
 .pagination{{display:flex;align-items:center;justify-content:center;gap:18px;margin:16px 0}}.pagination a{{font-weight:600}}
-nav .missing,nav .missing.recent,nav .missing.ai,nav .missing.ai-manual{{color:#6639ba;background:#f2eafe;border-color:#a475f9;font-weight:700}}nav .recent{{background:#dcffe4;border-color:#56d364;color:#116329}}nav .ai,nav .ai-manual{{background:#fff8c5;border-color:#d4a72c;color:#6e4c00}}nav .empty-result,nav .empty-result.recent,nav .empty-result.ai,nav .empty-result.ai-manual{{color:#9e424e;background:#ffe4e8;border-color:#e88b99;font-weight:700}}nav .error,nav .error.recent,nav .error.ai,nav .error.ai-manual{{color:#cf222e;background:#ffebe9;border-color:#ff8182;font-weight:700}}.empty{{padding:28px;text-align:center;color:var(--muted)}}
+nav .missing,nav .missing.today,nav .missing.yesterday,nav .missing.ai,nav .missing.ai-manual{{color:#6639ba;background:#f2eafe;border-color:#a475f9;font-weight:700}}nav .yesterday{{background:#edfff1;border-color:#8bd49a;color:#1b6330}}nav .today{{background:#238636;border-color:#196c2e;color:#fff;font-weight:700}}nav .ai,nav .ai-manual{{background:#fff8c5;border-color:#d4a72c;color:#6e4c00}}nav .empty-result,nav .empty-result.today,nav .empty-result.yesterday,nav .empty-result.ai,nav .empty-result.ai-manual{{color:#9e424e;background:#ffe4e8;border-color:#e88b99;font-weight:700}}nav .error,nav .error.today,nav .error.yesterday,nav .error.ai,nav .error.ai-manual{{color:#cf222e;background:#ffebe9;border-color:#ff8182;font-weight:700}}.empty{{padding:28px;text-align:center;color:var(--muted)}}
 .error-banner{{margin-top:12px;padding:10px 12px;border:1px solid #ff8182;background:#ffebe9;color:#82071e}}
 .empty-banner{{margin-top:12px;padding:10px 12px;border:1px solid #e88b99;background:#ffe4e8;color:#762c39}}
 @media(max-width:700px){{header,main{{padding-left:12px;padding-right:12px}}th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5){{display:none}}}}
@@ -221,7 +226,7 @@ def main() -> int:
         print(f"{source['name']}：{len(items)} 条")
 
     today = datetime.now().date()
-    recent_cutoff = today.fromordinal(today.toordinal() - 1)
+    yesterday = today.fromordinal(today.toordinal() - 1)
     source_links = [("全部公交", "index.html", "")] + []
     for source, items in source_results:
         classes = []
@@ -231,8 +236,11 @@ def main() -> int:
             classes.append("error")
         elif source.get("fetch_empty"):
             classes.append("empty-result")
-        if any(recent_cutoff <= parse_date(str(item.get("date", ""))) <= today for item in items):
-            classes.append("recent")
+        item_dates = {parse_date(str(item.get("date", ""))) for item in items}
+        if today in item_dates:
+            classes.append("today")
+        elif yesterday in item_dates:
+            classes.append("yesterday")
         if source.get("id") in AI_SOURCE_IDS:
             classes.append("ai")
         source_links.append((source["name"], f"{source['id']}.html", " ".join(classes)))
