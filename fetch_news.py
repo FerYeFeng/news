@@ -71,7 +71,12 @@ def render_page(
     links = ""
     for name, path, status in source_links:
         classes = status.split() if status else []
-        suffix = "（暂无录入）" if "missing" in classes else "（更新失败）" if "error" in classes else ""
+        suffix = (
+            "（未录入）" if "missing" in classes
+            else "（更新失败）" if "error" in classes
+            else "（公告为空）" if "empty-result" in classes
+            else ""
+        )
         class_name = f' class="{" ".join(classes)}"' if classes else ""
         links += f'<a href="{html.escape(path, quote=True)}"{class_name}>{html.escape(name + suffix)}</a>'
     rows = []
@@ -117,7 +122,8 @@ def render_page(
     if page < page_count:
         pagination += f'<a href="{next_link}">下一页</a>'
     pagination += "</div>"
-    notice_html = f'<div class="error-banner">{html.escape(notice)}</div>' if notice else ""
+    notice_class = "empty-banner" if notice.startswith("公告内容为空") else "error-banner"
+    notice_html = f'<div class="{notice_class}">{html.escape(notice)}</div>' if notice else ""
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -135,8 +141,9 @@ td:first-child{{white-space:nowrap}}tr:nth-child(even){{background:#fbfcfd}}
 .platform-badge{{display:inline-block;padding:3px 7px;background:#eef4ff;border:1px solid #c8d8f5;border-radius:4px;white-space:nowrap}}
 details{{margin-top:7px}}summary{{color:var(--link);cursor:pointer}}.description{{white-space:pre-wrap;margin-top:7px;line-height:1.7;color:#3d444d}}
 .pagination{{display:flex;align-items:center;justify-content:center;gap:18px;margin:16px 0}}.pagination a{{font-weight:600}}
-nav .missing{{color:#6e7781;background:#f6f8fa}}nav .recent{{background:#dcffe4;border-color:#56d364;color:#116329}}nav .ai,nav .ai-manual{{background:#fff8c5;border-color:#d4a72c;color:#6e4c00}}nav .error,nav .error.recent,nav .error.ai,nav .error.ai-manual{{color:#cf222e;background:#ffebe9;border-color:#ff8182;font-weight:700}}.empty{{padding:28px;text-align:center;color:var(--muted)}}
+nav .missing,nav .missing.recent,nav .missing.ai,nav .missing.ai-manual{{color:#6639ba;background:#f2eafe;border-color:#a475f9;font-weight:700}}nav .recent{{background:#dcffe4;border-color:#56d364;color:#116329}}nav .ai,nav .ai-manual{{background:#fff8c5;border-color:#d4a72c;color:#6e4c00}}nav .empty-result,nav .empty-result.recent,nav .empty-result.ai,nav .empty-result.ai-manual{{color:#9e424e;background:#ffe4e8;border-color:#e88b99;font-weight:700}}nav .error,nav .error.recent,nav .error.ai,nav .error.ai-manual{{color:#cf222e;background:#ffebe9;border-color:#ff8182;font-weight:700}}.empty{{padding:28px;text-align:center;color:var(--muted)}}
 .error-banner{{margin-top:12px;padding:10px 12px;border:1px solid #ff8182;background:#ffebe9;color:#82071e}}
+.empty-banner{{margin-top:12px;padding:10px 12px;border:1px solid #e88b99;background:#ffe4e8;color:#762c39}}
 @media(max-width:700px){{header,main{{padding-left:12px;padding-right:12px}}th:nth-child(4),td:nth-child(4),th:nth-child(5),td:nth-child(5){{display:none}}}}
 </style></head><body><header><h1>{html.escape(title)}</h1>
 <p>共 {total_items} 条，每页最多 {PAGE_SIZE} 条，按日期从新到旧排列。更新时间：{fetched_at}</p>{notice_html}<div class="directory-tools"><input id="platform-search" type="search" placeholder="搜索平台" oninput="filterPlatforms(this.value)"><label class="ai-toggle"><input id="ai-edit" type="checkbox">设置 AI 标记</label></div><nav id="platform-nav">{links}</nav></header>
@@ -187,16 +194,21 @@ def main() -> int:
                 item for item in fetched_items
                 if isinstance(item, dict) and str(item.get("title", "")).strip()
             ]
-            if not fetched_items:
-                raise RuntimeError("接口未返回公告内容")
         except Exception as exc:
             fetched_items = []
             cache_note = "，使用历史缓存" if cached_items else "，暂无历史缓存"
             warning = f"抓取失败{cache_note}：{source['name']}：{exc}"
+            fetch_empty = False
         else:
-            warning = ""
+            fetch_empty = not fetched_items
+            cache_note = "，使用历史缓存" if cached_items else ""
+            warning = f"公告内容为空{cache_note}：{source['name']}" if fetch_empty else ""
         items = normalize(source, fetched_items + cached_items)
-        return {**source, "fetch_error": warning}, items, warning
+        return {
+            **source,
+            "fetch_error": warning if not fetch_empty else "",
+            "fetch_empty": warning if fetch_empty else "",
+        }, items, warning
 
     with ThreadPoolExecutor(max_workers=min(32, len(SOURCES))) as executor:
         updates = list(executor.map(update_source, SOURCES))
@@ -217,6 +229,8 @@ def main() -> int:
             classes.append("missing")
         elif source.get("fetch_error"):
             classes.append("error")
+        elif source.get("fetch_empty"):
+            classes.append("empty-result")
         if any(recent_cutoff <= parse_date(str(item.get("date", ""))) <= today for item in items):
             classes.append("recent")
         if source.get("id") in AI_SOURCE_IDS:
@@ -227,7 +241,8 @@ def main() -> int:
         title = f"{source['name']}公告"
         if source.get("unavailable"):
             title += "（暂无录入该平台）"
-        write_paginated_pages(filename, title, items, source_links, source.get("fetch_error", ""))
+        notice = source.get("fetch_error") or source.get("fetch_empty", "")
+        write_paginated_pages(filename, title, items, source_links, notice)
         (OUTPUT_DIR / f"{source['id']}.json").write_text(
             json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8"
         )
