@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import time
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
@@ -28,7 +29,6 @@ HEADERS = {
     "appCode": "D0A960E40558E85E579596F214D21E193EA16375544207EC6FF74B0FBA0C55FB",
     "requestIds": "620aa1329e7dc46dea5438c81f9aa7e1",
     "adSource": "1",
-    "stamp": "1788845288494",
     "digit": "25163",
     "Content-Type": "application/json; charset=UTF-8",
     "Accept-Encoding": "gzip",
@@ -41,7 +41,8 @@ def fetch_page(page: int) -> tuple[str, list[dict]]:
         {"channelCode": "RM21", "pageIndex": str(page)},
         separators=(",", ":"),
     ).encode("utf-8")
-    request = Request(ENDPOINT, data=payload, method="POST", headers=HEADERS)
+    headers = {**HEADERS, "stamp": str(int(time.time() * 1000))}
+    request = Request(ENDPOINT, data=payload, method="POST", headers=headers)
     with urlopen(request, timeout=30) as response:
         body = response.read()
         if response.headers.get("Content-Encoding", "").lower() == "gzip":

@@ -61,6 +61,14 @@ def panda_signed_payload(payload: dict) -> dict:
     return payload
 
 
+def current_millis() -> str:
+    return str(int(datetime.now().timestamp() * 1000))
+
+
+def current_datetime() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def fetch_heze() -> list[dict]:
     result = load_json(Request("http://weixin.hezebus.com:9008/hzapp/push/notificationNotice/notificationGeneral"))
     return [
@@ -83,9 +91,10 @@ def fetch_dezhou() -> list[dict]:
 
 
 def fetch_weihai() -> list[dict]:
+    timestamp = current_millis()
     url = ("https://app.ibuscloud.com/v2/user/message/getUserMessage?typeCode=5&page=1&count=10"
            "&uuid=00000000-499e-8d32-ffff-ffffef05ac4a&access_id=pt_wh_app"
-           "&timestamp=1788847129140&city=371000&token=&appSource=com.ibuscloud.weihaibus"
+           f"&timestamp={timestamp}&city=371000&token=&appSource=com.ibuscloud.weihaibus"
            "&platform=Android&signature=bg4Cm%2FT3H4HOcA%2FRICsRFhVsSm6hcpzbdMlsOLpGP0o%3D")
     result = load_json(Request(url))
     if str(result.get("result")) != "0" or not isinstance(result.get("items"), list):
@@ -99,7 +108,7 @@ def fetch_weihai() -> list[dict]:
 
 
 def fetch_longkou() -> list[dict]:
-    result = post_form("http://www.lkgjt.xyz:7006/GetInfo/Notice", {"B": 1, "Len": 100, "Date": "2026-09-08 13:56:41"})
+    result = post_form("http://www.lkgjt.xyz:7006/GetInfo/Notice", {"B": 1, "Len": 100, "Date": current_datetime()})
     return [
         {"id": stable_id(item.get("Date"), item.get("Title")), "date": item.get("Date", ""),
          "title": item.get("Title", ""), "type": "公告", "image": "",
@@ -112,7 +121,7 @@ def fetch_baiyin() -> list[dict]:
     payload = {"clientType": "00", "data": {"newsType": "03", "pageNum": 1, "pageSize": 10},
                "machineType": "", "merchantId": "10000001", "phone": "",
                "sign": "CsWgIyzrwAHSuvp8Ll0DEJPu2bLm1bECn7Js8FGm7MWNjTHIqZdAwEFDFcnlfWOlNNiIjf8iQumH\n+/W2sWlNyOE5fufrMd5qbAzNtHg2T9pQV21lS7STWZBGXdB7v7+iSKZwJfivzoWApTG5zN6fc7YH\ne3GQ0S0b9edagGauCSk=\n",
-               "timestamp": "2026-09-08 13:55:35", "token": "", "userId": "", "version": "2.3.8"}
+               "timestamp": current_datetime(), "token": "", "userId": "", "version": "2.3.8"}
     result = post_json("https://www.bybus.com.cn:40001/tick/news-service/news/getAppNewsList", payload,
                        {"mode": "android", "version": "2.3.8"})
     return [
@@ -127,7 +136,7 @@ def fetch_xiongan() -> list[dict]:
     payload = {"clientType": "00", "data": {"newsType": "", "pageNum": 1, "pageSize": 10},
                "machineType": "", "merchantId": "10000001", "phone": "",
                "sign": "IksbeT6qkXIKIR9kbpQushmUSGuqEDqHxQ4gskSrF91rMBvEPKkM2en/5LQyw2i7RLYNJv3qjKqb\n5pXij+R0uMz+esuc4nF1Xs9EfaPNjpVBqmMg2VN9cs12TQ6ZfVOLWLteL8iq25pA1JFUN01S86X+\nF2EYFbzhtnprZxK7ZLI=\n",
-               "timestamp": "2026-09-08 14:08:31", "token": "", "userId": "", "version": "3.16.4"}
+               "timestamp": current_datetime(), "token": "", "userId": "", "version": "3.16.4"}
     result = post_json("https://m.greenxax.com/tick/news-service/news/getAppNewsList", payload,
                        {"mode": "android", "version": "3.16.4"})
     return [
@@ -142,7 +151,7 @@ def fetch_xiangyang() -> list[dict]:
     payload = {"clientType": "00", "data": {"newsType": "01", "pageNum": 1, "pageSize": 10},
                "machineType": "", "merchantId": "10000001", "phone": "",
                "sign": "OWaIDuUTB6o2Jz+bHf9eECDddROMQRS8558EwAjDf1RY1aQ/0wEYTg3bYXDtEw9Qs/AAWPfZdtgn\nVJLmJwA5kbrBtpIvMRqc42M0MOmLnbZDyFtrxGeaRoaxz6NFKaMqkDu7dJmEa/oEWHQyPSqQDc15\nVyIzIOpfKCPIPXoGNn8=\n",
-               "timestamp": "2026-09-08 14:20:36", "token": "", "userId": "", "version": "4.2.10"}
+               "timestamp": current_datetime(), "token": "", "userId": "", "version": "4.2.10"}
     result = post_json("https://xycx.xfbus.com.cn/tick/news-service/news/getAppNewsList", payload,
                        {"mode": "android", "version": "4.2.10", "User-Agent": "okhttp/3.14.9"})
     return [
@@ -154,10 +163,11 @@ def fetch_xiangyang() -> list[dict]:
 
 
 def fetch_jitai() -> list[dict]:
-    headers = {"deviceId": "123456", "timer": "1788849545471", "msgId": "1234561788849545471",
+    timer = current_millis()
+    headers = {"deviceId": "123456", "timer": timer, "msgId": f"123456{timer}",
                "signature": "0430c440578adf2fca10e526ad511f44934038aab824481c2516af506c8143415503615767c994e657ccbe8259c3d15cd5ee1dd792f4d02171e21ca09a94be05954cd01cd39f501d9b4b1ef1d26c038d6f286bc503a1f7468bbc0ab6e3f9ee10276cfeef8bcd0164b35060e65f83b519cee92282fda58aacb0ad5bc35068dd17a297b46f5d6f1a"}
     result = post_form("http://123.135.128.171:7009/GetInfo/Notice",
-                       {"B": 1, "Len": 100, "Date": "2026-09-08 14:39:05"}, headers)
+                       {"B": 1, "Len": 100, "Date": current_datetime()}, headers)
     return [
         {"id": stable_id(item.get("Date"), item.get("Title")), "date": item.get("Date", ""),
          "title": item.get("Title", ""), "type": "公告", "image": "",
@@ -167,10 +177,11 @@ def fetch_jitai() -> list[dict]:
 
 
 def fetch_e_laiwu() -> list[dict]:
-    headers = {"deviceId": "123456", "timer": "1788849602876", "msgId": "1234561788849602876",
+    timer = current_millis()
+    headers = {"deviceId": "123456", "timer": timer, "msgId": f"123456{timer}",
                "signature": "04d4e217e9a32a9ec565f3daf7c6dfde16bd5e5a0623a23de97db17daaa3a61b5576b16338f9e3679b68359c9f1b66d7eb52d8acef0aeddfc5901e2fe1746d325e34d827f2c3ef5d675a03fcf766454c69b7ec9fc4cdb954ed5001d5fd0013598dcfbf81b752be9a6f4d4ddbcedf6342aab9eab9ac20171b25bc727dfe938ce9b40a64e8030fc7"}
     result = post_form("http://111.17.170.179:104/GetInfo/Notice",
-                       {"B": 1, "Len": 100, "Date": "2026-09-08 14:40:02"}, headers)
+                       {"B": 1, "Len": 100, "Date": current_datetime()}, headers)
     return [
         {"id": stable_id(item.get("Date"), item.get("Title")), "date": item.get("Date", ""),
          "title": item.get("Title", ""), "type": "最新100条（签名分页）", "image": "",
@@ -216,7 +227,7 @@ def fetch_baoji() -> list[dict]:
     headers = {"osType": "1", "deviceType": "1", "versionName": "1.1.1.2", "versionCode": "32",
                "realCityCode": "0917", "deviceId": "e2d84e2b040d49899e27ecc871fd956c",
                "cityCode": "610300", "appCode": "D0A960E40558E85E579596F214D21E193EA16375544207EC6FF74B0FBA0C55FB",
-               "requestIds": "9ed6c6e41fa0461893fe", "stamp": "1788847880324", "digit": "39388",
+               "requestIds": "9ed6c6e41fa0461893fe", "stamp": current_millis(), "digit": "39388",
                "User-Agent": "okhttp/4.8.0"}
     base = "https://app.baojigongjiao.com"
     return fetch_notice_channel(base + "/api/appClient/noAuth/publish/v1/getNoticeFromChannel", base, headers, "21")
@@ -226,7 +237,7 @@ def fetch_huaibei() -> list[dict]:
     headers = {"osType": "1", "deviceType": "1", "versionName": "1.0.3", "versionCode": "4",
                "realCityCode": "0319", "deviceId": "9d965901a9c24c57876034222b7b1a63",
                "cityCode": "340600", "appCode": "D0A960E40558E85E579596F214D21E193EA16375544207EC6FF74B0FBA0C55FB",
-               "requestIds": "4a9d7b50022c7a65bdeb894de6b9253a", "stamp": "1788848070390", "digit": "9072",
+               "requestIds": "4a9d7b50022c7a65bdeb894de6b9253a", "stamp": current_millis(), "digit": "9072",
                "User-Agent": "okhttp/4.8.0"}
     base = "https://hbnb.huaibeigj.com"
     return fetch_notice_channel(base + "/api/appClient/noAuth/publish/v1/getNoticeFromChannel", base, headers, "RM21")
@@ -263,7 +274,7 @@ def fetch_notification_general(url: str) -> list[dict]:
 def fetch_rongcheng() -> list[dict]:
     return fetch_notification_general(
         "https://rcbus.org.cn:50013/rcapp/push/notificationNotice/notificationGeneral"
-        "?page=1&limit=1000&appLatestTimeStampStr=1788156360943&signApp=sd3420b5fd0181b7fa1504c44eb8597786hy"
+        f"?page=1&limit=1000&appLatestTimeStampStr={current_millis()}&signApp=sd3420b5fd0181b7fa1504c44eb8597786hy"
     )
 
 
@@ -284,9 +295,10 @@ def fetch_maanshan() -> list[dict]:
 
 
 def fetch_raocheng() -> list[dict]:
+    timestamp = current_millis()
     url = ("https://app.ibuscloud.com/v2/user/message/getUserMessage?typeCode=5&page=1&count=10"
            "&uuid=00000000-499e-8d32-ffff-ffffef05ac4a&access_id=pt_sr_app"
-           "&timestamp=1788848368623&city=361100&token=&appSource=com.ibuscloud.shangraobus"
+           f"&timestamp={timestamp}&city=361100&token=&appSource=com.ibuscloud.shangraobus"
            "&platform=Android&signature=ZgTLCB8sKZ7tnhNXMIeJJg%2B8E3CO49J2P%2BAwpUdakvo%3D")
     result = load_json(Request(url))
     if str(result.get("result")) != "0" or not isinstance(result.get("items"), list):
@@ -312,7 +324,7 @@ def fetch_longdu() -> list[dict]:
 
 
 def fetch_binzhou() -> list[dict]:
-    result = post_form("http://60.215.8.42:7006/GetInfo/Notice", {"B": 1, "Len": 2000, "Date": "2026-09-08 13:51:46"})
+    result = post_form("http://60.215.8.42:7006/GetInfo/Notice", {"B": 1, "Len": 2000, "Date": current_datetime()})
     return [
         {"id": stable_id(item.get("Date"), item.get("Title")), "date": item.get("Date", ""),
          "title": item.get("Title", ""), "type": "公告", "image": "",
@@ -322,8 +334,9 @@ def fetch_binzhou() -> list[dict]:
 
 
 def fetch_tianjin() -> list[dict]:
+    now = datetime.now()
     payload = {"version": "1.0.0", "cityCode": "3000", "appCode": "yt-bus",
-               "actionId": "26-09-08_13-50-08__508null015下午", "data": {}}
+               "actionId": now.strftime("%y-%m-%d_%H-%M-%S_") + f"_{now.microsecond // 1000:03d}null015下午", "data": {}}
     result = post_json("https://bus-slave.tjgjyt.com:18305/universal/user/v2/getNewsList", payload)
     return [
         {"id": str(item["id"]), "date": datetime.fromtimestamp(int(item["time"]) / 1000).strftime("%Y-%m-%d %H:%M:%S"),

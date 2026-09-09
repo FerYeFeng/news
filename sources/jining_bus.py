@@ -27,8 +27,10 @@ SIGN = (
 
 
 def fetch() -> list[dict]:
+    # currentTime is covered by the captured RSA signature; changing it alone invalidates sign.
+    head = HEAD
     payload = json.dumps(
-        {"head": HEAD, "data": DATA, "sign": SIGN},
+        {"head": head, "data": DATA, "sign": SIGN},
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")

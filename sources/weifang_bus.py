@@ -21,6 +21,8 @@ def _plain(v):
 def fetch() -> list[dict]:
     payload = dict(CAPTURED)
     payload["reqdate"] = time.strftime("%Y%m%d")
+    payload["reqtime"] = time.strftime("%H%M%S")
+    payload["joininstssn"] = time.strftime("%Y%m%d%H%M%S") + f"{int(time.time() * 1000) % 1000000:06d}"
     body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
     req = Request(ENDPOINT, data=body, method="POST", headers={"Content-Type":"application/json; charset=UTF-8", "User-Agent":"okhttp/4.9.3", "Accept-Encoding":"gzip"})
     with urlopen(req, timeout=30, context=ssl.create_default_context()) as r:
