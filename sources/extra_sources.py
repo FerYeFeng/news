@@ -136,7 +136,7 @@ def fetch_xiongan() -> list[dict]:
     payload = {"clientType": "00", "data": {"newsType": "", "pageNum": 1, "pageSize": 10},
                "machineType": "", "merchantId": "10000001", "phone": "",
                "sign": "IksbeT6qkXIKIR9kbpQushmUSGuqEDqHxQ4gskSrF91rMBvEPKkM2en/5LQyw2i7RLYNJv3qjKqb\n5pXij+R0uMz+esuc4nF1Xs9EfaPNjpVBqmMg2VN9cs12TQ6ZfVOLWLteL8iq25pA1JFUN01S86X+\nF2EYFbzhtnprZxK7ZLI=\n",
-               "timestamp": current_datetime(), "token": "", "userId": "", "version": "3.16.4"}
+               "timestamp": "2026-09-08 14:08:31", "token": "", "userId": "", "version": "3.16.4"}
     result = post_json("https://m.greenxax.com/tick/news-service/news/getAppNewsList", payload,
                        {"mode": "android", "version": "3.16.4"})
     return [
@@ -151,7 +151,7 @@ def fetch_xiangyang() -> list[dict]:
     payload = {"clientType": "00", "data": {"newsType": "01", "pageNum": 1, "pageSize": 10},
                "machineType": "", "merchantId": "10000001", "phone": "",
                "sign": "OWaIDuUTB6o2Jz+bHf9eECDddROMQRS8558EwAjDf1RY1aQ/0wEYTg3bYXDtEw9Qs/AAWPfZdtgn\nVJLmJwA5kbrBtpIvMRqc42M0MOmLnbZDyFtrxGeaRoaxz6NFKaMqkDu7dJmEa/oEWHQyPSqQDc15\nVyIzIOpfKCPIPXoGNn8=\n",
-               "timestamp": current_datetime(), "token": "", "userId": "", "version": "4.2.10"}
+               "timestamp": "2026-09-08 14:20:36", "token": "", "userId": "", "version": "4.2.10"}
     result = post_json("https://xycx.xfbus.com.cn/tick/news-service/news/getAppNewsList", payload,
                        {"mode": "android", "version": "4.2.10", "User-Agent": "okhttp/3.14.9"})
     return [
