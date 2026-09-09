@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import html
 import json
+import re
+from html.parser import HTMLParser
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -17,6 +21,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 bus-news-aggregator/1.0",
     "X-Requested-With": "XMLHttpRequest",
 }
+DETAIL_EXECUTOR = ThreadPoolExecutor(max_workers=12)
 
 AREAS = [
     ("tianjin", "天津", "天津市"),
@@ -62,6 +67,39 @@ def normalize_url(value: str | None) -> str:
     )
 
 
+class DetailTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        value = data.strip()
+        if value:
+            self.parts.append(value)
+
+
+def fetch_detail(url: str) -> tuple[str, str]:
+    if not url:
+        return "", ""
+    request = Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
+    with urlopen(request, timeout=20) as response:
+        body = response.read().decode("utf-8", errors="replace")
+    parser = DetailTextParser()
+    parser.feed(body)
+    detail_text = html.unescape("\n".join(parser.parts))
+    match = re.search(r"发布时间\s*[:：]\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)", detail_text)
+    published_at = match.group(1) if match else ""
+    description = re.sub(r"^.*?发布时间\s*[:：]\s*[^\n]+\n?", "", detail_text, count=1, flags=re.S).strip()
+    return published_at, description
+
+
+def safe_fetch_detail(url: str) -> tuple[str, str]:
+    try:
+        return fetch_detail(url)
+    except Exception:
+        return "", ""
+
+
 def fetch_city(city_name: str) -> list[dict]:
     body = urlencode({"CMD": "203", "CITYNAME": city_name, "CITYKEY": ""}).encode("utf-8")
     request = Request(ENDPOINT, data=body, method="POST", headers=HEADERS)
@@ -70,18 +108,22 @@ def fetch_city(city_name: str) -> list[dict]:
     if result.get("status") != 1:
         raise RuntimeError(result.get("msg") or result.get("message") or "掌上公交接口返回失败")
 
+    rows = result.get("data") or []
+    urls = [normalize_url(item.get("clickurl")) for item in rows]
+    details = list(DETAIL_EXECUTOR.map(safe_fetch_detail, urls))
+
     announcements = []
-    for item in result.get("data") or []:
+    for item, url, (published_at, description) in zip(rows, urls, details):
         identity = "\n".join((city_name, str(item.get("date", "")), str(item.get("title", ""))))
         announcements.append(
             {
                 "id": hashlib.sha1(identity.encode("utf-8")).hexdigest(),
-                "date": item.get("date", ""),
+                "date": published_at or item.get("date", ""),
                 "title": item.get("title", ""),
                 "type": item.get("type", "公告"),
                 "image": "",
-                "description": "",
-                "url": normalize_url(item.get("clickurl")),
+                "description": description,
+                "url": url,
             }
         )
     return announcements
