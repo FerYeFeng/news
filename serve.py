@@ -7,6 +7,7 @@ import os
 import threading
 import time
 import webbrowser
+import json
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -18,6 +19,7 @@ HTML_DIR = ROOT / "html"
 HOST = "0.0.0.0"
 PORT = 9092
 INTERVAL_SECONDS = 180
+refresh_lock = threading.Lock()
 
 
 class NewsHandler(SimpleHTTPRequestHandler):
@@ -28,17 +30,40 @@ class NewsHandler(SimpleHTTPRequestHandler):
         ".json": "application/json; charset=utf-8",
     }
 
+    def do_POST(self) -> None:
+        if self.path.split("?", 1)[0] != "/refresh":
+            self.send_error(404)
+            return
+        if not refresh_lock.acquire(blocking=False):
+            body = json.dumps({"ok": False, "message": "已有更新任务正在运行"}, ensure_ascii=False).encode()
+            self.send_response(409)
+        else:
+            try:
+                status = fetch_news.main()
+                body = json.dumps({"ok": status == 0, "status": status}).encode()
+                self.send_response(200)
+            except Exception as error:
+                body = json.dumps({"ok": False, "message": str(error)}, ensure_ascii=False).encode()
+                self.send_response(500)
+            finally:
+                refresh_lock.release()
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
 
 def update_loop() -> None:
     while True:
         started = time.monotonic()
         print("\n开始更新全部平台……", flush=True)
-        try:
-            status = fetch_news.main()
-        except Exception as error:
-            print(f"更新异常：{error}", flush=True)
-        else:
-            print("全部平台更新完成。" if status == 0 else "部分平台更新失败。", flush=True)
+        with refresh_lock:
+            try:
+                status = fetch_news.main()
+            except Exception as error:
+                print(f"更新异常：{error}", flush=True)
+            else:
+                print("全部平台更新完成。" if status == 0 else "部分平台更新失败。", flush=True)
         elapsed = time.monotonic() - started
         delay = max(0, INTERVAL_SECONDS - elapsed)
         print(f"本轮用时 {elapsed:.1f} 秒，{delay:.1f} 秒后开始下一轮。", flush=True)
