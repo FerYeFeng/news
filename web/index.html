@@ -5,11 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
   <title>公交公告监控</title>
-  <link rel="stylesheet" href="/styles.css?v=20260910-1">
+  <link rel="stylesheet" href="/styles.css?v=20260910-4">
 </head>
 <body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><div><strong>公交公告监控</strong><span>全国公交信息源</span></div></div>
+    <div class="header-actions"><span class="service-state"><i id="state-dot"></i><span id="service-label">连接中</span></span><button id="refresh" class="icon-button" type="button" title="刷新数据" aria-label="刷新数据">↻</button><button id="check" class="primary" type="button"><span aria-hidden="true">▶</span>立即刷新</button></div>
+  </header>
   <main>
-    <p id="updated-at" class="summary">正在读取数据</p>
+    <section class="overview" aria-labelledby="page-title"><div><p class="eyebrow">MONITOR / LIVE STATUS</p><h1 id="page-title">公交公告总览</h1><p id="updated-at" class="muted">正在读取数据</p></div><div class="metrics"><div><span>监控来源</span><strong id="metric-total">--</strong></div><div><span>本次更新</span><strong id="metric-updates">--</strong></div><div><span>运行正常</span><strong id="metric-healthy">--</strong></div><div><span>需要处理</span><strong id="metric-failed">--</strong></div></div></section>
 
     <section class="workspace">
       <div class="toolbar">
@@ -20,7 +24,6 @@
           <button class="tab" data-view="sources" type="button">平台 <span id="count-sources">0</span></button>
         </div>
         <div class="toolbar-right">
-          <button id="refresh" class="refresh-button" type="button" title="立即抓取全部平台" aria-label="立即抓取全部平台">立即刷新</button>
           <label id="ai-mode-wrap" class="ai-mode" hidden><input id="ai-mode" type="checkbox"><span>设置 AI 标记</span></label>
           <select id="sort" aria-label="公告排序"><option value="desc">时间：最新优先</option><option value="asc">时间：最早优先</option></select>
           <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索平台或公告" autocomplete="off"></label>
@@ -34,6 +37,6 @@
       <div id="pagination" class="pagination"><button id="previous" type="button">上一页</button><span id="page-label">第 1 / 1 页</span><button id="next" type="button">下一页</button></div>
     </section>
   </main>
-  <script src="/app.js?v=20260910-1"></script>
+  <script src="/app.js?v=20260910-3"></script>
 </body>
 </html>
