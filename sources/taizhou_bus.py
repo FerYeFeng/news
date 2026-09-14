@@ -90,7 +90,7 @@ def fetch() -> list[dict]:
         payload = urlencode({"type": "1", "page": page, "limit": page_size}).encode()
         return parse_page(request_html(PAGE_URL, payload)).items
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         for items in executor.map(load_page, pages):
             raw_items.extend(items)
 

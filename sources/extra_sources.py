@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import os
 import re
 import ssl
 from datetime import datetime
@@ -69,6 +70,27 @@ def current_datetime() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def fetch_douyin_profile(profile_url: str) -> list[dict]:
+    """Probe a Douyin profile; public server-side responses are often empty/blocked."""
+    import subprocess
+    from pathlib import Path
+    import re
+    venv = Path(r"D:\AutomaticStart\AstrBotLauncher-0.2.0\AstrBot\venv\Scripts\python.exe")
+    script = Path(__file__).with_name("douyin_fetch.py")
+    match = re.search(r"/user/([^/?]+)", profile_url)
+    if not match:
+        raise RuntimeError("无效的抖音账号地址")
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run([str(venv), str(script), match.group(1)], capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, timeout=45)
+    if result.returncode:
+        raise RuntimeError((result.stderr or result.stdout).strip()[-300:])
+    import json
+    rows = json.loads(result.stdout)
+    if not rows:
+        raise RuntimeError("抖音接口未返回作品")
+    return rows
+
+
 def fetch_heze() -> list[dict]:
     result = load_json(Request("http://weixin.hezebus.com:9008/hzapp/push/notificationNotice/notificationGeneral"))
     return [
@@ -91,19 +113,26 @@ def fetch_dezhou() -> list[dict]:
 
 
 def fetch_weihai() -> list[dict]:
-    timestamp = current_millis()
-    url = ("https://app.ibuscloud.com/v2/user/message/getUserMessage?typeCode=5&page=1&count=10"
-           "&uuid=00000000-499e-8d32-ffff-ffffef05ac4a&access_id=pt_wh_app"
-           f"&timestamp={timestamp}&city=371000&token=&appSource=com.ibuscloud.weihaibus"
-           "&platform=Android&signature=bg4Cm%2FT3H4HOcA%2FRICsRFhVsSm6hcpzbdMlsOLpGP0o%3D")
-    result = load_json(Request(url))
-    if str(result.get("result")) != "0" or not isinstance(result.get("items"), list):
-        raise RuntimeError(result.get("message") or "威海公交接口返回失败")
+    signed_queries = (
+        (5, "1789364847953", "kEybTtCl688IOygtMHttdGXWT6HWY%2BAGqoVIpF1iIXE%3D"),
+        (4, "1789364847963", "0V1rNudzWbQtmpUMRQNYAOMtGiEuBZyxd32dq9HS0jY%3D"),
+    )
+    rows = []
+    for type_code, timestamp, signature in signed_queries:
+        url = (f"https://app.ibuscloud.com/v2/user/message/getUserMessage?typeCode={type_code}&page=1&count=10"
+               "&uuid=00000000-499e-8d32-ffff-ffffef05ac4a&access_id=pt_wh_app"
+               f"&timestamp={timestamp}&city=371000&token=&appSource=com.ibuscloud.weihaibus"
+               f"&platform=Android&signature={signature}")
+        result = load_json(Request(url, headers={"User-Agent": "okhttp/3.12.0"}))
+        if str(result.get("result")) != "0" or not isinstance(result.get("items"), list):
+            raise RuntimeError(result.get("message") or f"威海公交分类 {type_code} 接口返回失败")
+        rows.extend(result["items"])
+    items = {str(item.get("id")): item for item in rows}.values()
     return [
         {"id": str(item["id"]), "date": datetime.fromtimestamp(int(item["createTime"]) / 1000).strftime("%Y-%m-%d %H:%M:%S"),
-         "title": item.get("title", ""), "type": "最新10条（签名分页）", "image": "",
+         "title": item.get("title", ""), "type": "威海公交公告", "image": "",
          "description": item.get("abstractInfo", ""), "url": item.get("h5", "")}
-        for item in result.get("items", [])
+        for item in items
     ]
 
 

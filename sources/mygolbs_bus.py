@@ -21,7 +21,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 bus-news-aggregator/1.0",
     "X-Requested-With": "XMLHttpRequest",
 }
-DETAIL_EXECUTOR = ThreadPoolExecutor(max_workers=12)
+DETAIL_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 
 AREAS = [
     ("tianjin", "天津", "天津市"),

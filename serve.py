@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve generated pages on port 9092 and refresh all sources every 3 minutes."""
+"""Serve generated pages on port 9092 and refresh all sources every 10 minutes."""
 
 from __future__ import annotations
 
@@ -18,8 +18,21 @@ ROOT = Path(__file__).resolve().parent
 HTML_DIR = ROOT / "html"
 HOST = "0.0.0.0"
 PORT = 9092
-INTERVAL_SECONDS = 180
+INTERVAL_SECONDS = 600
 refresh_lock = threading.Lock()
+
+
+def lower_process_priority() -> None:
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = (ctypes.c_void_p, ctypes.c_uint32)
+        kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), 0x00004000)
+    except Exception:
+        pass
 
 
 class NewsHandler(SimpleHTTPRequestHandler):
@@ -71,6 +84,7 @@ def update_loop() -> None:
 
 
 def main() -> None:
+    lower_process_priority()
     HTML_DIR.mkdir(parents=True, exist_ok=True)
     os.chdir(HTML_DIR)
     server = ThreadingHTTPServer((HOST, PORT), NewsHandler)
@@ -78,7 +92,7 @@ def main() -> None:
     url = f"http://127.0.0.1:{PORT}/"
     print(f"监听地址：http://{HOST}:{PORT}/", flush=True)
     print(f"本机页面：{url}", flush=True)
-    print("每 3 分钟更新全部平台。关闭此窗口即可停止。", flush=True)
+    print("每 10 分钟更新全部平台。关闭此窗口即可停止。", flush=True)
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try:
         server.serve_forever()

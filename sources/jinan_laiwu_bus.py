@@ -56,7 +56,7 @@ def _fetch_all_locked() -> list[dict]:
             else:
                 high = middle
         last_page = low
-        with ThreadPoolExecutor(max_workers=12) as executor:
+        with ThreadPoolExecutor(max_workers=1) as executor:
             page_items = list(executor.map(fetch_page, range(0, last_page + 1)))
 
     announcements = []

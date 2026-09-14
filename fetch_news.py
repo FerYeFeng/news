@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import json
+import os
 import shutil
 import sys
+import time
 from datetime import date, datetime, time as dt_time
 from pathlib import Path
 
@@ -15,6 +16,10 @@ from sources import SOURCES, AI_SOURCE_IDS
 
 ROOT = Path(__file__).resolve().parent
 OUTPUT_DIR = ROOT / "html"
+try:
+    REFRESH_WINDOW_SECONDS = max(60, min(590, int(os.environ.get("NEWS_REFRESH_WINDOW_SECONDS", "540"))))
+except ValueError:
+    REFRESH_WINDOW_SECONDS = 540
 
 
 def parse_date(value: str) -> date:
@@ -98,8 +103,15 @@ def main() -> int:
         items = normalize(source, fetched_items + cached_items)
         return result_source, items, result_source.get("notice", "")
 
-    with ThreadPoolExecutor(max_workers=min(32, len(SOURCES))) as executor:
-        updates = list(executor.map(update_source, SOURCES))
+    print(f"串行刷新，将来源均匀安排在约 {REFRESH_WINDOW_SECONDS // 60} 分钟内")
+    updates = []
+    refresh_started = time.monotonic()
+    for index, source in enumerate(SOURCES, start=1):
+        updates.append(update_source(source))
+        target_elapsed = index * REFRESH_WINDOW_SECONDS / len(SOURCES)
+        pause = target_elapsed - (time.monotonic() - refresh_started)
+        if pause > 0 and index < len(SOURCES):
+            time.sleep(pause)
 
     today = datetime.now().date()
     yesterday = today.fromordinal(today.toordinal() - 1)
